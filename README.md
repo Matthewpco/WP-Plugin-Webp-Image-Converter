@@ -6,7 +6,7 @@
 
 ## 🙋‍♂️ Introduction
 
-- Wordpress plugin that adds a new submenu under tools with a form to either enter a url of an image to convert or upload an image and convert to webp.
+- Wordpress plugin that adds a new submenu under tools with a form to either enter a url of an image to convert or upload an image and convert to webp. Added functionality to scan through media library and convert all images at once.
 
 <br>
 
