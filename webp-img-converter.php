@@ -3,7 +3,7 @@
 Plugin Name: Webp Image Converter
 Plugin URI: https://github.com/Matthewpco/WP-Plugin-Webp-Image-Converter
 Description: Wordpress plugin that adds a new submenu under tools with a form to either enter a url of an image to convert or upload an image and convert to webp.
-Version: 1.3.0
+Version: 1.4.0
 Author: Gary Matthew Payne
 Author URI: https://www.wpwebdevelopment.com
 */
@@ -35,8 +35,50 @@ function webp_converter_form() {
             <input type="file" name="image_file" id="image_file" accept=".jpg,.jpeg,.png">
             <input type="submit" value="Convert to WebP">
         </form>
+		<form method="post">
+            <input type="hidden" name="convert_all_images" value="1">
+            <input type="submit" value="Convert All Images">
+        </form>
         <?php
-			if ( isset( $_POST['image_url'] ) && ! empty( $_POST['image_url'] ) ) {
+        if ( isset( $_POST['convert_all_images'] ) ) {
+             
+			global $wpdb;
+            $results = $wpdb->get_results( "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg', 'image/png')" );
+            if ( ! empty( $results ) ) {
+                echo '<p>Found ' . count( $results ) . ' attachment posts.</p>';
+                foreach ( $results as $post ) {
+                    $attachment_id = $post->ID;
+                    $file_path = get_attached_file( $attachment_id );
+                    $extension = pathinfo( $file_path, PATHINFO_EXTENSION );
+                    if ( $extension === 'jpg' || $extension === 'jpeg' ) {
+                        $image = imagecreatefromjpeg( $file_path );
+                    } 
+					elseif ( $extension === 'png' ) {
+                        $image = imagecreatefrompng( $file_path );
+                    }
+                    if ( isset( $image ) ) {
+                        echo '<p>Created image resource for attachment ID ' . $attachment_id . '</p>';
+                        $webp_image_path = str_replace( ".$extension", '.webp', $file_path );
+                        imagewebp( $image, $webp_image_path );
+                        imagedestroy( $image );
+                        update_attached_file( $attachment_id, $webp_image_path );
+                        wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $webp_image_path ) );
+                        wp_update_post( array(
+                            'ID' => $attachment_id,
+                            'post_mime_type' => 'image/webp',
+                        ) );
+                        echo '<p>Image ID ' . $attachment_id . ' converted and replaced successfully!</p>';
+                    } 
+					else {
+                        echo '<p>Failed to create image resource for attachment ID ' . $attachment_id . '</p>';
+                    }
+                }
+            } 
+			else {
+                echo '<p>No attachment posts found.</p>';
+            }
+        }
+			elseif ( isset( $_POST['image_url'] ) && ! empty( $_POST['image_url'] ) ) {
 				$url = esc_url_raw( $_POST['image_url'] );
 				$extension = pathinfo( $url, PATHINFO_EXTENSION );
 				$response = wp_remote_get( $url );
@@ -62,7 +104,8 @@ function webp_converter_form() {
 					wp_update_attachment_metadata( $attach_id,  $attach_data );
 					echo '<p>Image converted successfully! <a href="' . esc_url( wp_get_attachment_url( $attach_id ) ) . '">Download WebP image</a></p>';
 				}
-			} elseif ( isset( $_FILES['image_file'] ) ) {
+			} 
+			elseif ( isset( $_FILES['image_file'] ) ) {
 				// Handle uploaded image file...
 				$file = $_FILES['image_file'];
 				$extension = pathinfo( $file['name'], PATHINFO_EXTENSION );
