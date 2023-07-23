@@ -1,4 +1,4 @@
-![](https://raw.githubusercontent.com/Matthewpco/WP-Plugin-Webp-Image-Converter/main/webp-img-converter-screenshot.png)
+![](https://raw.githubusercontent.com/Matthewpco/WP-Plugin-Webp-Image-Converter/main/webp-img-converter.png)
 
 # Webp Image Converter
 
