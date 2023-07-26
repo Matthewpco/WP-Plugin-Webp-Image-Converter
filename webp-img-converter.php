@@ -3,7 +3,7 @@
 Plugin Name: Webp Image Converter
 Plugin URI: https://github.com/Matthewpco/WP-Plugin-Webp-Image-Converter
 Description: Wordpress plugin that adds a new submenu under tools with a form to either enter a url of an image to convert or upload an image and convert to webp.
-Version: 1.5.0
+Version: 1.6.0
 Author: Gary Matthew Payne
 Author URI: https://www.wpwebdevelopment.com
 */
@@ -19,7 +19,7 @@ add_filter( 'big_image_size_threshold', '__return_false' );
 
 
 function webp_converter_admin_menu() {
-    add_submenu_page( 'tools.php', 'WebP Converter', 'WebP Converter', 'manage_options', 'webp-converter', 'webp_converter_form' );
+    add_submenu_page( 'tools.php', 'Image Converter', 'Image Converter', 'manage_options', 'webp-converter', 'webp_converter_form' );
 }
 add_action( 'admin_menu', 'webp_converter_admin_menu' );
 
@@ -59,37 +59,39 @@ function webp_converter_form() {
         if ( isset( $_POST['convert_all_images'] ) ) {
              
 			global $wpdb;
-            $results = $wpdb->get_results( "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg', 'image/png')" );
-            if ( ! empty( $results ) ) {
-                echo '<p>Found ' . count( $results ) . ' attachment posts.</p>';
-                foreach ( $results as $post ) {
-                    $attachment_id = $post->ID;
-                    $file_path = get_attached_file( $attachment_id );
-                    $extension = pathinfo( $file_path, PATHINFO_EXTENSION );
-                    if ( $extension === 'jpg' || $extension === 'jpeg' ) {
-                        $image = imagecreatefromjpeg( $file_path );
-                    } 
+			$results = $wpdb->get_results( "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg', 'image/png')" );
+			if ( ! empty( $results ) ) {
+				echo '<p>Found ' . count( $results ) . ' attachment posts.</p>';
+				foreach ( $results as $post ) {
+					$attachment_id = $post->ID;
+					$file_path = get_attached_file( $attachment_id );
+					$extension = pathinfo( $file_path, PATHINFO_EXTENSION );
+					if ( $extension === 'jpg' || $extension === 'jpeg' ) {
+						$image = imagecreatefromjpeg( $file_path );
+					} 
 					elseif ( $extension === 'png' ) {
-                        $image = imagecreatefrompng( $file_path );
-                    }
-                    if ( isset( $image ) ) {
-                        echo '<p>Created image resource for attachment ID ' . $attachment_id . '</p>';
-                        $webp_image_path = str_replace( ".$extension", '.webp', $file_path );
-                        imagewebp( $image, $webp_image_path );
-                        imagedestroy( $image );
-                        update_attached_file( $attachment_id, $webp_image_path );
-                        wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $webp_image_path ) );
-                        wp_update_post( array(
-                            'ID' => $attachment_id,
-                            'post_mime_type' => 'image/webp',
-                        ) );
-                        echo '<p>Image ID ' . $attachment_id . ' converted and replaced successfully!</p>';
-                    } 
+						$image = imagecreatefrompng( $file_path );
+					}
+					if ( isset( $image ) ) {
+						echo '<p>Created image resource for attachment ID ' . $attachment_id . '</p>';
+						$webp_image_path = str_replace( ".$extension", '.webp', $file_path );
+						imagewebp( $image, $webp_image_path );
+						imagedestroy( $image );
+						update_attached_file( $attachment_id, $webp_image_path );
+						wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $webp_image_path ) );
+						wp_update_post( array(
+							'ID' => $attachment_id,
+							'post_mime_type' => 'image/webp',
+						) );
+						// Delete the old image file
+						unlink( $file_path );
+						echo '<p>Image ID ' . $attachment_id . ' converted and replaced successfully!</p>';
+					} 
 					else {
-                        echo '<p>Failed to create image resource for attachment ID ' . $attachment_id . '</p>';
-                    }
-                }
-            } 
+						echo '<p>Failed to create image resource for attachment ID ' . $attachment_id . '</p>';
+					}
+				}
+			} 
 			else {
                 echo '<p>No attachment posts found.</p>';
             }
